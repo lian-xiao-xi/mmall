@@ -19,6 +19,7 @@ public class UserController {
   @Autowired
   private IUserService userService;
   
+  // 登录
   @RequestMapping(value = "login.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<User> login(String username, String password, HttpSession session) {
@@ -27,5 +28,20 @@ public class UserController {
       session.setAttribute(Const.CURRENT_USER, response.getData());
     }
     return response;
+  }
+  
+  // 退出登录
+  @RequestMapping(value = "logout.do", method = RequestMethod.GET)
+  @ResponseBody
+  public ServerResponse<String> logout(HttpSession session) {
+    session.removeAttribute(Const.CURRENT_USER);
+    return ServerResponse.createBySuccess();
+  }
+  
+  // 注册
+  @RequestMapping(value = "register.do", method = RequestMethod.GET)
+  @ResponseBody
+  public ServerResponse<String> register(User user) {
+    return userService.register(user);
   }
 }
