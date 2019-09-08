@@ -35,13 +35,13 @@ public class UserServiceImpl implements IUserService {
   
   @Override
   public ServerResponse<String> register(User user) {
-    int count = userMapper.checkUsername(user.getUsername());
-    if(count > 0) {
-      return ServerResponse.createByError("用户已存在");
+    ServerResponse<String> checkUsername = this.checkValid(user.getUsername(), Const.USERNAME);
+    if(!checkUsername.isSuccess()) {
+      return checkUsername;
     }
-    count = userMapper.checkEmail(user.getEmail());
-    if(count > 0) {
-      return ServerResponse.createByError("邮箱已存在");
+    ServerResponse<String> checkEmail = this.checkValid(user.getEmail(), Const.EMAIL);
+    if(!checkEmail.isSuccess()) {
+      return checkEmail;
     }
     user.setRole(Const.Roles.ROLE_CUSTOMER);
   
@@ -54,5 +54,50 @@ public class UserServiceImpl implements IUserService {
     }
     return ServerResponse.createBySuccessMessage("注册成功");
   }
+  
+  @Override
+  public ServerResponse<String> checkValid(String str, String type) {
+    if(StringUtils.isNotBlank(str)) {
+      // 开始校验
+      if(Const.USERNAME.equals(type)) {
+        int count = userMapper.checkUsername(str);
+        if(count>0) {
+          return ServerResponse.createByError("用户名已存在");
+        }
+      }
+      if(Const.EMAIL.equals(type)) {
+        int count = userMapper.checkEmail(str);
+        if(count>0) {
+          return ServerResponse.createByError("邮箱已经存在");
+        }
+      }
+    } else {
+      return ServerResponse.createByError("参数错误");
+    }
+    return ServerResponse.createBySuccessMessage("校验成功");
+  }
+  
+  @Override
+  public ServerResponse selectQuestion(String username) {
+    ServerResponse<String> checkUsername = this.checkValid(username, Const.USERNAME);
+    if(!checkUsername.isSuccess()) {
+      return ServerResponse.createByError("用户名不存在");
+    }
+    String question = userMapper.selectQuestionByUsername(username);
+    if(StringUtils.isNotBlank(question)) {
+      return ServerResponse.createBySuccess(question);
+    }
+    return ServerResponse.createByError("找回密码的问题为空");
+  }
+  
+  @Override
+  public ServerResponse<String> checkAnswer(String username, String question, String answer) {
+    int count = userMapper.checkAnswer(username, question, answer);
+    if(count>0) {
+      // 说明问题是这个用户的，且回答正确
+    }
+    return null;
+  }
+  
   
 }
