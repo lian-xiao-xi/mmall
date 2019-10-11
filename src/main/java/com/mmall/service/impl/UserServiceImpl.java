@@ -2,6 +2,7 @@ package com.mmall.service.impl;
 
 import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
+import com.mmall.common.TokenCache;
 import com.mmall.dao.UserMapper;
 import com.mmall.pojo.User;
 import com.mmall.service.IUserService;
@@ -9,6 +10,8 @@ import com.mmall.util.MD5Util;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service("iUserService")
 public class UserServiceImpl implements IUserService {
@@ -95,8 +98,11 @@ public class UserServiceImpl implements IUserService {
     int count = userMapper.checkAnswer(username, question, answer);
     if(count>0) {
       // 说明问题是这个用户的，且回答正确
+      String forgetToken = UUID.randomUUID().toString();
+      TokenCache.setKey("token_"+username, forgetToken);
+      return ServerResponse.createBySuccessMessage(forgetToken);
     }
-    return null;
+    return ServerResponse.createByError("问题的答案错误");
   }
   
   
