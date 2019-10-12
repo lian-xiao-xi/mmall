@@ -77,5 +77,12 @@ public class UserController {
   public ServerResponse<String> uIsTrue(String username, String question,  String answer) {
     return iUserService.checkAnswer(username, question, answer);
   }
+
+  // 忘记密码
+  @RequestMapping(value = "forget_reset_password", method = RequestMethod.POST)
+  @ResponseBody
+  public ServerResponse<String> forgetRestPassword(String username, String passwordNew, String forgetToken) {
+    return iUserService.forgetRestPassword(username, passwordNew, forgetToken);
+  }
   
 }
