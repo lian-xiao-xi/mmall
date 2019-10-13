@@ -7,6 +7,7 @@ import com.mmall.dao.UserMapper;
 import com.mmall.pojo.User;
 import com.mmall.service.IUserService;
 import com.mmall.util.MD5Util;
+import net.sf.jsqlparser.schema.Server;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -128,6 +129,39 @@ public class UserServiceImpl implements IUserService {
       return ServerResponse.createByError("token错误，请重新获取重置密码的token");
     }
     return ServerResponse.createByError("修改密码成功");
+  }
+
+  @Override
+  public ServerResponse<String> resetPassword(String passwordOld, String passwordNew, User user) {
+    // 防止横向越权，要校验一下这个用户的旧密码是不是所遇这个用户的
+    int userCount = userMapper.checkPasswordByUserId(user.getId(), passwordOld);
+    if(userCount <= 0) return ServerResponse.createByError("旧密码错误");
+    user.setPassword(passwordNew);
+    int updateCount = userMapper.updateByPrimaryKeySelective(user);
+    // 更新用户的第二种方式
+//    User updateUser = new User();
+//    updateUser.setId(user.getId());
+//    updateUser.setPassword(passwordNew);
+//    int updateCount = userMapper.updateByPrimaryKeySelective(updateUser);
+    if(updateCount <= 0) ServerResponse.createByError("更新密码失败");
+    return ServerResponse.createBySuccessMessage("更新密码成功");
+  }
+
+  @Override
+  public ServerResponse<User> updateUserInfo(User user) {
+    // 不更新用户名
+    // 校验email，要更新的新email是否已经被别的用户使用
+    int emailCount = userMapper.checkEmailByUserId(user.getId(), user.getEmail());
+    if(emailCount <= 0) return ServerResponse.createByError("email已经存在，请更换");
+    User updateUser = new User();
+    updateUser.setId(user.getId());
+    updateUser.setAnswer(user.getAnswer());
+    updateUser.setEmail(user.getEmail());
+    updateUser.setPhone(user.getPhone());
+    updateUser.setQuestion(user.getQuestion());
+    int updateCount = userMapper.updateByPrimaryKeySelective(updateUser);
+    if(updateCount <= 0) return ServerResponse.createByError("更新用户基本信息失败");
+    return ServerResponse.createBySuccess("更新用户基本信息成功", updateUser);
   }
 
 }

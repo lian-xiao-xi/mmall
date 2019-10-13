@@ -78,11 +78,37 @@ public class UserController {
     return iUserService.checkAnswer(username, question, answer);
   }
 
-  // 忘记密码
+  // 忘记密码中的重置密码
   @RequestMapping(value = "forget_reset_password", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> forgetRestPassword(String username, String passwordNew, String forgetToken) {
     return iUserService.forgetRestPassword(username, passwordNew, forgetToken);
   }
-  
+
+  // 登录状态下的重置密码
+  @RequestMapping(value = "reset_password", method = RequestMethod.POST)
+  @ResponseBody
+  public ServerResponse<String> resetPassword(String passwordOld, String passwordNew, HttpSession session) {
+    User user = (User) session.getAttribute(Const.CURRENT_USER);
+    if(user == null) return ServerResponse.createByError("用户未登录");
+    return iUserService.resetPassword(passwordOld, passwordNew, user);
+  }
+
+  // 更新用户个人基本信息(eamil,phone等，不包含用户名、密码、角色)
+  @RequestMapping(value = "update_user_info", method = RequestMethod.POST)
+  @ResponseBody
+  public ServerResponse<User> updateUserInfo(User user, HttpSession session) {
+    User currentUser = (User) session.getAttribute(Const.CURRENT_USER);
+    if(currentUser == null) return ServerResponse.createByError("用户未登录");
+    // 前端传过来的user不含用户id
+    user.setId(currentUser.getId());
+    user.setUsername(currentUser.getUsername());
+    ServerResponse<User> userServerResponse = iUserService.updateUserInfo(user);
+    if(userServerResponse.isSuccess()) {
+      User data = userServerResponse.getData();
+      data.setUsername(user.getUsername());
+      session.setAttribute(Const.CURRENT_USER, data);
+    }
+    return userServerResponse;
+  }
 }
