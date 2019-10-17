@@ -33,6 +33,7 @@ public class UserServiceImpl implements IUserService {
     if(user == null) {
       return ServerResponse.createByError("密码错误");
     }
+    // 不能将敏感信息传到前端
     user.setPassword(StringUtils.EMPTY);
     return ServerResponse.createBySuccess("登录成功", user);
   }
@@ -163,5 +164,13 @@ public class UserServiceImpl implements IUserService {
     if(updateCount <= 0) return ServerResponse.createByError("更新用户基本信息失败");
     return ServerResponse.createBySuccess("更新用户基本信息成功", updateUser);
   }
-
+  
+  @Override
+  public ServerResponse<User> getUserInfo(int userId) {
+    User user = userMapper.selectByPrimaryKey(userId);
+    if(user == null) return ServerResponse.createByError("用户不存在");
+    user.setPassword(StringUtils.EMPTY);
+    return ServerResponse.createBySuccess(user);
+  }
+  
 }

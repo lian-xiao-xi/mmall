@@ -1,6 +1,7 @@
 package com.mmall.controller.portal;
 
 import com.mmall.common.Const;
+import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.pojo.User;
 import com.mmall.service.IUserService;
@@ -32,7 +33,7 @@ public class UserController {
   }
   
   // 退出登录
-  @RequestMapping(value = "logout.do", method = RequestMethod.GET)
+  @RequestMapping(value = "logout.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> logout(HttpSession session) {
     session.removeAttribute(Const.CURRENT_USER);
@@ -40,21 +41,21 @@ public class UserController {
   }
   
   // 注册
-  @RequestMapping(value = "register.do", method = RequestMethod.GET)
+  @RequestMapping(value = "register.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> register(User user) {
     return iUserService.register(user);
   }
   
   // 用户邮箱、手机号校验
-  @RequestMapping(value = "check_valid.do", method = RequestMethod.GET)
+  @RequestMapping(value = "check_valid.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> checkValid(String str, String type) {
     return iUserService.checkValid(str, type);
   }
   
   // 获取当前用户信息
-  @RequestMapping(value = "get_user_info.do", method = RequestMethod.GET)
+  @RequestMapping(value = "get_user_info.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<User> getUserInfo(HttpSession session) {
     User user = (User) session.getAttribute(Const.CURRENT_USER);
@@ -72,7 +73,7 @@ public class UserController {
   }
   
   // 判读密码提示问题是否回答正确
-  @RequestMapping(value = "question_is_true", method = RequestMethod.GET)
+  @RequestMapping(value = "question_is_true", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> uIsTrue(String username, String question,  String answer) {
     return iUserService.checkAnswer(username, question, answer);
@@ -94,7 +95,7 @@ public class UserController {
     return iUserService.resetPassword(passwordOld, passwordNew, user);
   }
 
-  // 更新用户个人基本信息(eamil,phone等，不包含用户名、密码、角色)
+  // 更新用户个人基本信息(email,phone等，不包含用户名、密码、角色)
   @RequestMapping(value = "update_user_info", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<User> updateUserInfo(User user, HttpSession session) {
@@ -110,5 +111,14 @@ public class UserController {
       session.setAttribute(Const.CURRENT_USER, data);
     }
     return userServerResponse;
+  }
+  
+  // 获取用户个人基本信息
+  @RequestMapping(value = "get_user_info", method = RequestMethod.GET)
+  @ResponseBody
+  public ServerResponse<User> get_user_info(HttpSession session) {
+    User currentUser = (User) session.getAttribute(Const.CURRENT_USER);
+    if(currentUser == null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), "用户尚未登录，请先登录");
+    return iUserService.getUserInfo(currentUser.getId());
   }
 }
