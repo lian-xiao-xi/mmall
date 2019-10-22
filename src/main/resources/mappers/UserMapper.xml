@@ -165,7 +165,7 @@
 
   <select id="selectLogin" resultMap="BaseResultMap" parameterType="map">
     select <include refid="Base_Column_List"/>
-    form mmall_user
+    from mmall_user
     where username = #{username} and password = #{password}
   </select>
 
