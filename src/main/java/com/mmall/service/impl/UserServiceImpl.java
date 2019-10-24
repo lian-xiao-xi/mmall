@@ -174,6 +174,7 @@ public class UserServiceImpl implements IUserService {
   }
 
   // 当前用户是否为管理员角色
+  // Todo 后期观察一下是否需要将返回值改为Boolean来重构此方法
   @Override
   public ServerResponse isAdminRole(User user) {
     if(user != null && user.getRole() == Const.Roles.ROLE_ADMIN) {
