@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpSession;
 import java.util.UUID;
 
 @Service("iUserService")
@@ -181,6 +182,13 @@ public class UserServiceImpl implements IUserService {
       return ServerResponse.createBySuccess();
     }
     return ServerResponse.createByError();
+  }
+  
+  // Todo 后期观察是否能使用此方法来替换 Service 层大量判断当前用户是否为管理员的重复代码
+  @Override
+  public ServerResponse isAdminRole(HttpSession session) {
+    User user = (User) session.getAttribute(Const.CURRENT_USER);
+    return this.isAdminRole(user);
   }
 
 }

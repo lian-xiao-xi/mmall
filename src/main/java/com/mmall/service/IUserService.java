@@ -16,4 +16,5 @@ public interface IUserService {
   ServerResponse<User> updateUserInfo(User user);
   ServerResponse<User> getUserInfo(int userId);
   ServerResponse isAdminRole(User user);
+  ServerResponse isAdminRole(HttpSession session);
 }
