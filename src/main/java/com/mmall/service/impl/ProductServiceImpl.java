@@ -1,5 +1,7 @@
 package com.mmall.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.CategoryMapper;
@@ -9,10 +11,14 @@ import com.mmall.pojo.Product;
 import com.mmall.service.IProductServer;
 import com.mmall.util.PropertiesUtil;
 import com.mmall.vo.ProductDetailVo;
+import com.mmall.vo.ProductListVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements IProductServer {
@@ -77,15 +83,24 @@ public class ProductServiceImpl implements IProductServer {
     
     @Override
     public ServerResponse<ProductDetailVo> getProductDetail(Integer productId) {
-        if(productId == null){
-            return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(),ResponseCode.ILLEGAL_ARGUMENT.getDesc());
-        }
+//        if(productId == null){
+//            return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(),ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+//        }
         Product product = productMapper.selectByPrimaryKey(productId);
         if(product == null) return ServerResponse.createByError("产品不存在");
         ProductDetailVo productDetailVo = this.assembleProductDetailVo(product);
         return ServerResponse.createBySuccess(productDetailVo);
     }
-    
+
+    @Override
+    public ServerResponse<PageInfo<ProductListVo>> getProductList(Integer pageNum, Integer pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
+        List<Product> products = productMapper.selectList();
+        List<ProductListVo> productListVos = products.stream().map(this::assembleProductListVo).collect(Collectors.toList());
+        PageInfo<ProductListVo> listVoPageInfo = new PageInfo<>(productListVos);
+        return ServerResponse.createBySuccess(listVoPageInfo);
+    }
+
     private ProductDetailVo assembleProductDetailVo(Product product) {
         ProductDetailVo productDetailVo = new ProductDetailVo();
         productDetailVo.setId(product.getId());
@@ -109,5 +124,19 @@ public class ProductServiceImpl implements IProductServer {
             productDetailVo.setParentCategoryId(category.getParentId());
         }
         return productDetailVo;
+    }
+
+    private ProductListVo assembleProductListVo(Product product) {
+        ProductListVo productListVo = new ProductListVo();
+        productListVo.setId(product.getId());
+        productListVo.setName(product.getName());
+        productListVo.setCategoryId(product.getCategoryId());
+        productListVo.setImageHost(PropertiesUtil.getProperty("ftp.server.http.prefix","http://img.happymmall.com/"));
+        productListVo.setMainImage(product.getMainImage());
+        productListVo.setPrice(product.getPrice());
+        productListVo.setSubtitle(product.getSubtitle());
+        productListVo.setStatus(product.getStatus());
+        productListVo.setCreateTime(product.getCreateTime());
+        return productListVo;
     }
 }
