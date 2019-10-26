@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.List;
 
@@ -89,6 +91,21 @@ public class ProductManagerController {
         if(user == null) return ServerResponse.createByError("未登录");
         if(iUserService.isAdminRole(user).isSuccess()) {
             return iProductServer.searchProductList(productName, productId, pageNum, pageSize);
+        } else {
+            return ServerResponse.createByError("用户无权限操作");
+        }
+    }
+    
+    // 上传图片
+    @RequestMapping(value = "upload.do", method = RequestMethod.POST)
+    @ResponseBody
+    public ServerResponse upload(@RequestParam(required = false) MultipartFile file, HttpServletRequest httpServletRequest, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user == null) return ServerResponse.createByError("未登录");
+        if(iUserService.isAdminRole(user).isSuccess()) {
+            String path = session.getServletContext().getRealPath("upload");
+            
+            return null;
         } else {
             return ServerResponse.createByError("用户无权限操作");
         }
