@@ -100,7 +100,17 @@ public class ProductServiceImpl implements IProductServer {
         PageInfo<ProductListVo> listVoPageInfo = new PageInfo<>(productListVos);
         return ServerResponse.createBySuccess(listVoPageInfo);
     }
-
+    
+    @Override
+    public ServerResponse<PageInfo<ProductListVo>> searchProductList(String productName, Integer productId, Integer pageNum, Integer pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
+        if(StringUtils.isNotBlank(productName)) productName = "%" + productName + "%";
+        List<Product> products = productMapper.selectByNameAndProductId(productName, productId);
+        List<ProductListVo> productListVos = products.stream().map(this::assembleProductListVo).collect(Collectors.toList());
+        PageInfo<ProductListVo> listVoPageInfo = new PageInfo<>(productListVos);
+        return ServerResponse.createBySuccess(listVoPageInfo);
+    }
+    
     private ProductDetailVo assembleProductDetailVo(Product product) {
         ProductDetailVo productDetailVo = new ProductDetailVo();
         productDetailVo.setId(product.getId());

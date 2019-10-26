@@ -185,4 +185,16 @@
     ORDER BY id asc /*这里不能加分号";"，因为 pageHelper 会通过在sql语句句尾加分页的语句*/
   </select>
 
+  <select id="selectByNameAndProductId" resultMap="BaseResultMap" parameterType="map">
+    select <include refid="Base_Column_List"/>
+    from mmall_product
+    <where>
+      <if test="productName != null">
+        and name like #{productName}
+      </if>
+      <if test="productId != null">
+        and id = #{productId}
+      </if>
+    </where>
+  </select>
 </mapper>

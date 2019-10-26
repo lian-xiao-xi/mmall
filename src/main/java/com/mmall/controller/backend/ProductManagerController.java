@@ -68,13 +68,27 @@ public class ProductManagerController {
         }
     }
 
+    // 产品列表
     @RequestMapping(value = "list.do", method = RequestMethod.GET)
     @ResponseBody
-    public ServerResponse<PageInfo<ProductListVo>> getProductList(Integer pageNum, Integer pageSize, HttpSession session) {
+    public ServerResponse<PageInfo<ProductListVo>> getProductList(@RequestParam(defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "10") Integer pageSize, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user == null) return ServerResponse.createByError("未登录");
         if(iUserService.isAdminRole(user).isSuccess()) {
             return iProductServer.getProductList(pageNum, pageSize);
+        } else {
+            return ServerResponse.createByError("用户无权限操作");
+        }
+    }
+    
+    // 搜索产品
+    @RequestMapping(value = "search.do", method = RequestMethod.GET)
+    @ResponseBody
+    public ServerResponse<PageInfo<ProductListVo>> searchProductList(String productName, Integer productId, @RequestParam(defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "10") Integer pageSize, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user == null) return ServerResponse.createByError("未登录");
+        if(iUserService.isAdminRole(user).isSuccess()) {
+            return iProductServer.searchProductList(productName, productId, pageNum, pageSize);
         } else {
             return ServerResponse.createByError("用户无权限操作");
         }
