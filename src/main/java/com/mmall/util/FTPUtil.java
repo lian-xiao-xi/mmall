@@ -9,21 +9,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 
 public class FTPUtil {
     private static final Logger logger = LoggerFactory.getLogger(FTPUtil.class);
     private final String ip = PropertiesUtil.getProperty("ftp.server.ip");
     private final String user = PropertiesUtil.getProperty("ftp.user");
     private final String pwd = PropertiesUtil.getProperty("ftp.pass");
-    private final Integer port;
+    private final Integer port = Integer.valueOf(Objects.requireNonNull(PropertiesUtil.getProperty("ftp.server.port")));
     private FTPClient ftpClient;
 
-    public FTPUtil(Integer port) {
-        this.port = port;
-    }
-
     public static boolean uploadFile(List<File> fileList) throws IOException {
-        FTPUtil ftpUtil = new FTPUtil(21);
+        FTPUtil ftpUtil = new FTPUtil();
         logger.info("开始连接ftp服务器");
         boolean result = ftpUtil.uploadFile("img",fileList);
         logger.info("开始连接ftp服务器,结束上传,上传结果:");
@@ -51,8 +48,13 @@ public class FTPUtil {
                 uploaded = false;
                 e.printStackTrace();
             } finally {
-                fis.close();
-                this.ftpClient.disconnect();
+                if (fis != null) {
+                    fis.close();
+                }
+                if(this.ftpClient.isConnected()) {
+                    this.ftpClient.logout();
+                    this.ftpClient.disconnect();
+                }
             }
         }
         return uploaded;
@@ -62,8 +64,8 @@ public class FTPUtil {
         this.ftpClient = new FTPClient();
         boolean isSuccess = false;
         try {
-//            ftpClient.connect(ip, port);
-            ftpClient.connect(ip);
+            ftpClient.connect(ip, port);
+//            ftpClient.connect(ip);
             isSuccess = ftpClient.login(user, pwd);
         } catch (IOException e) {
             logger.error("连接FTP服务器异常", e);

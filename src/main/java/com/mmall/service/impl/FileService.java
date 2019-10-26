@@ -4,12 +4,14 @@ import com.mmall.service.IFileService;
 import com.mmall.util.FTPUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+@Service
 public class FileService implements IFileService {
     private final Logger logger = LoggerFactory.getLogger(FileService.class);
 
@@ -29,7 +31,7 @@ public class FileService implements IFileService {
         }
         File targetFile = new File(fileDir, uploadFileName);
         try {
-            // 文件上传成功了
+            // 文件上传到本地成功了
             file.transferTo(targetFile);
             ArrayList<File> fileList = new ArrayList<>(Collections.singletonList(targetFile));
             //上传到ftp服务器是否成功

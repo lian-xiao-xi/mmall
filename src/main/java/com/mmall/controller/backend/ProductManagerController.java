@@ -5,13 +5,16 @@ import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
 import com.mmall.pojo.Product;
 import com.mmall.pojo.User;
+import com.mmall.service.IFileService;
 import com.mmall.service.IProductServer;
 import com.mmall.service.IUserService;
+import com.mmall.util.PropertiesUtil;
 import com.mmall.vo.ProductDetailVo;
 import com.mmall.vo.ProductListVo;
 import com.sun.istack.internal.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.HashMap;
 import java.util.List;
 
 @Controller
@@ -30,6 +34,9 @@ public class ProductManagerController {
 
     @Autowired
     private IUserService iUserService;
+
+    @Autowired
+    private IFileService iFileService;
 
 
     @RequestMapping(value = "save.do", method = RequestMethod.POST)
@@ -104,8 +111,12 @@ public class ProductManagerController {
         if(user == null) return ServerResponse.createByError("未登录");
         if(iUserService.isAdminRole(user).isSuccess()) {
             String path = session.getServletContext().getRealPath("upload");
-            
-            return null;
+            String targetFileName = iFileService.upload(file, path);
+            String url = PropertiesUtil.getProperty("ftp.server.http.prefix")+targetFileName;
+            HashMap<String, String> fileMap = new HashMap<>();
+            fileMap.put("uri", targetFileName);
+            fileMap.put("url", url);
+            return ServerResponse.createBySuccess(fileMap);
         } else {
             return ServerResponse.createByError("用户无权限操作");
         }
