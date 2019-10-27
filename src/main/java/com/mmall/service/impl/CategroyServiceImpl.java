@@ -78,9 +78,9 @@ public class CategroyServiceImpl implements ICategroyService {
         HashSet<Category> set = new HashSet<>();
         // 当前节点
         Category category = categoryMapper.selectByPrimaryKey(categoryId);
-        if(category != null) {
-            set.add(category);
-        }
+        // 如果某个分类节点不存在，则视为其下的子节点也都不存在
+        if(category == null) return set;
+        set.add(category);
         // 当前节点的所有子节点
         List<Category> categories = categoryMapper.selectCategorysByParentId(categoryId);
         for(Category c: categories) {
