@@ -2,12 +2,14 @@ package com.mmall.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.mmall.common.Const;
 import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.CategoryMapper;
 import com.mmall.dao.ProductMapper;
 import com.mmall.pojo.Category;
 import com.mmall.pojo.Product;
+import com.mmall.service.ICategroyService;
 import com.mmall.service.IProductServer;
 import com.mmall.util.PropertiesUtil;
 import com.mmall.vo.ProductDetailVo;
@@ -27,6 +29,8 @@ public class ProductServiceImpl implements IProductServer {
     private ProductMapper productMapper;
     @Autowired
     private CategoryMapper categoryMapper;
+    @Autowired
+    private ICategroyService iCategroyService;
 
     @Override
     public ServerResponse<String> saveOrUpdateProduct(Product product) {
@@ -104,11 +108,37 @@ public class ProductServiceImpl implements IProductServer {
     @Override
     public ServerResponse<PageInfo<ProductListVo>> searchProductList(String productName, Integer productId, Integer pageNum, Integer pageSize) {
         PageHelper.startPage(pageNum, pageSize);
-        if(StringUtils.isNotBlank(productName)) productName = "%" + productName + "%";
+//        if(StringUtils.isNotBlank(productName))
+            productName = "%" + productName + "%";
         List<Product> products = productMapper.selectByNameAndProductId(productName, productId);
         List<ProductListVo> productListVos = products.stream().map(this::assembleProductListVo).collect(Collectors.toList());
         PageInfo<ProductListVo> listVoPageInfo = new PageInfo<>(productListVos);
         return ServerResponse.createBySuccess(listVoPageInfo);
+    }
+
+    @Override
+    public ServerResponse<ProductDetailVo> portalProductDetail(Integer productId) {
+        Product product = productMapper.selectByPrimaryKey(productId);
+        if(product == null)
+            return ServerResponse.createByError("产品不存在");
+        if(product.getStatus() != Const.ProductStatus.ON_SALE.getCode())
+            return ServerResponse.createByError("产品已下架或者删除");
+        ProductDetailVo productDetailVo = this.assembleProductDetailVo(product);
+        return ServerResponse.createBySuccess(productDetailVo);
+    }
+
+    @Override
+    public ServerResponse<PageInfo<ProductListVo>> portalGetProductByKeywordCategory(String productName, Integer categoryId, Integer pageNum, Integer pageSize, String orderBy) {
+        List<Integer> deepCategoryIds = iCategroyService.getChildDeepCategoryIds(categoryId).getData();
+        PageHelper.startPage(pageNum, pageSize);
+        if(Const.ProductListOrderBy.PRICE_ASC_DESC.contains(orderBy)) {
+            String[] array = orderBy.split("_");
+            PageHelper.orderBy(array[0]+ "" + array[1]);
+        }
+        List<Product> products = productMapper.selectByNameAndCategoryIds("%" + productName + "%", deepCategoryIds);
+        List<ProductListVo> productListVos = products.stream().map(this::assembleProductListVo).collect(Collectors.toList());
+        PageInfo<ProductListVo> productListVoPageInfo = new PageInfo<>(productListVos);
+        return ServerResponse.createBySuccess(productListVoPageInfo);
     }
     
     private ProductDetailVo assembleProductDetailVo(Product product) {

@@ -106,7 +106,7 @@ public class ProductManagerController {
     // 上传图片
     @RequestMapping(value = "upload.do", method = RequestMethod.POST)
     @ResponseBody
-    public ServerResponse upload(@RequestParam(required = false) MultipartFile file, HttpServletRequest httpServletRequest, HttpSession session) {
+    public ServerResponse upload(@RequestParam(required = false) MultipartFile file, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user == null) return ServerResponse.createByError("未登录");
         if(iUserService.isAdminRole(user).isSuccess()) {
