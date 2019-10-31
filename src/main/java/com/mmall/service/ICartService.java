@@ -5,6 +5,7 @@ import com.mmall.vo.CartVo;
 
 import java.util.List;
 
-public interface CartService {
+public interface ICartService {
     ServerResponse<CartVo> getCartVoList(int userId);
+    ServerResponse<Integer> add(Integer userId, Integer productId, Integer count);
 }
