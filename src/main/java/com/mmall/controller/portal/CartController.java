@@ -38,4 +38,15 @@ public class CartController {
         return iCartService.add(user.getId(), productId, count);
 
     }
+
+    // 更新购物车商品数量
+    @RequestMapping(value = "update.do", method = RequestMethod.POST)
+    public ServerResponse updateCartProductCount(Integer productId, Integer count, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user == null) {
+            return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+        return iCartService.update(user.getId(), productId, count);
+
+    }
 }

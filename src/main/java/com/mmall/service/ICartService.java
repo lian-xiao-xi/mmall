@@ -8,4 +8,5 @@ import java.util.List;
 public interface ICartService {
     ServerResponse<CartVo> getCartVoList(int userId);
     ServerResponse<Integer> add(Integer userId, Integer productId, Integer count);
+    ServerResponse<Integer> update(Integer userId, Integer productId, Integer count);
 }

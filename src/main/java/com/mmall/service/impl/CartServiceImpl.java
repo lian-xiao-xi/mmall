@@ -96,4 +96,27 @@ public class CartServiceImpl implements ICartService {
             }
         }
     }
+
+    @Override
+    public ServerResponse<Integer> update(Integer userId, Integer productId, Integer count) {
+        ServerResponse<Integer> errorResponse = ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+        if(count == null) return errorResponse;
+        Cart cart = cartMapper.selectCartByUserIdAndProductId(userId, productId);
+        if(cart == null) return errorResponse;
+        Product product = productMapper.selectByPrimaryKey(productId);
+        if(product == null) return errorResponse;
+        Integer stock = product.getStock();
+        int curCount = count + cart.getQuantity();
+        // 判断库存与购物车中此商品的数量关系
+        if(stock >= curCount) {
+            // 库存充足
+            cart.setQuantity(curCount);
+            int i = cartMapper.updateByPrimaryKeySelective(cart);
+            if(i<=0) return ServerResponse.createByError("添加到购物车失败");
+            else return ServerResponse.createBySuccessMessage("添加到购物车成功");
+        } else {
+            // 库存不足
+            return ServerResponse.createByError(ResponseCode.INVENTORY_SHORTAGE.getCode(), ResponseCode.INVENTORY_SHORTAGE.getDesc(), stock);
+        }
+    }
 }
