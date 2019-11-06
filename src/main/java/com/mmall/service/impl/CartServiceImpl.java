@@ -11,10 +11,12 @@ import com.mmall.pojo.Product;
 import com.mmall.service.ICartService;
 import com.mmall.vo.CartProductVo;
 import com.mmall.vo.CartVo;
+import org.apache.commons.lang.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -118,5 +120,15 @@ public class CartServiceImpl implements ICartService {
             // 库存不足
             return ServerResponse.createByError(ResponseCode.INVENTORY_SHORTAGE.getCode(), ResponseCode.INVENTORY_SHORTAGE.getDesc(), stock);
         }
+    }
+
+    @Override
+    public ServerResponse<String> deleteProduct(Integer userId, String productIds) {
+        String[] ids = productIds.split(",");
+        List<String> idsList = Arrays.asList(ids);
+        if(idsList.isEmpty()) return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+        int i = cartMapper.deleteByUserIdAndProductIds(userId, idsList);
+        if(i == idsList.size()) return ServerResponse.createBySuccessMessage("删除成功");
+        else return ServerResponse.createByError("删除失败，可能是部分购物车已不存在");
     }
 }

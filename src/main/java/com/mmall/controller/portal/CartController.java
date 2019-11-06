@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpSession;
 
 @RestController
+@RequestMapping("/cart")
 public class CartController {
     @Autowired
     private CartServiceImpl iCartService;
@@ -41,12 +42,22 @@ public class CartController {
 
     // 更新购物车商品数量
     @RequestMapping(value = "update.do", method = RequestMethod.POST)
-    public ServerResponse updateCartProductCount(Integer productId, Integer count, HttpSession session) {
+    public ServerResponse<Integer> updateCartProductCount(Integer productId, Integer count, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user == null) {
             return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
         }
         return iCartService.update(user.getId(), productId, count);
 
+    }
+
+    // 删除、批量删除
+    @RequestMapping(value = "delete.do", method = RequestMethod.POST)
+    public ServerResponse<String> deleteCartProduct(String productIds, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user == null) {
+            return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+        return iCartService.deleteProduct(user.getId(), productIds);
     }
 }
