@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+// Todo 使用 《on java 8》 第二十二章 枚举 “使用接口组织枚举” 小节的案例重构这个类
 public class Const {
   public static final String CURRENT_USER = "CURRENT_USER";
   public static final String USERNAME = "USERNAME";
