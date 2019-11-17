@@ -1,7 +1,6 @@
 *.class
 target/
-src/**/resources/datasource.properties
-src/**/resources/mmall.properties
+src/**/resources/*.properties
 
 #package file
 *.jar

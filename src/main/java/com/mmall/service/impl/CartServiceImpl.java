@@ -11,7 +11,6 @@ import com.mmall.pojo.Product;
 import com.mmall.service.ICartService;
 import com.mmall.vo.CartProductVo;
 import com.mmall.vo.CartVo;
-import org.apache.commons.lang.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
