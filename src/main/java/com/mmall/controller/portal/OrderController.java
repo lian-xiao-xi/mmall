@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 @RestController
+@RequestMapping("/order")
 public class OrderController {
     @Autowired
     private IOrderService iOrderService;
@@ -26,7 +27,7 @@ public class OrderController {
         if(user ==null){
             return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
         }
-        String path = session.getServletContext().getRealPath("upload");
-        return iOrderService.pay(orderNo, user.getId(), path);
+//        String path = session.getServletContext().getRealPath("upload");
+        return iOrderService.pay(orderNo, user.getId());
     }
 }
