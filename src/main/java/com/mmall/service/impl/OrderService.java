@@ -6,14 +6,21 @@ import com.alipay.api.domain.ExtendParams;
 import com.alipay.api.domain.GoodsDetail;
 import com.alipay.api.request.AlipayTradePrecreateRequest;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
+import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.OrderItemMapper;
 import com.mmall.dao.OrderMapper;
+import com.mmall.dao.PayInfoMapper;
 import com.mmall.pojo.Order;
 import com.mmall.pojo.OrderItem;
+import com.mmall.pojo.PayInfo;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateParser;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.time.FastDateParser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.PropertyNamingStrategy;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
@@ -21,10 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +49,8 @@ public class OrderService implements IOrderService {
     private OrderMapper orderMapper;
     @Autowired
     private OrderItemMapper orderItemMapper;
+    @Autowired
+    private PayInfoMapper payInfoMapper;
 
     @Override
     public ServerResponse<Map<String, String>> pay(long orderNo, int userId) {
@@ -140,5 +151,36 @@ public class OrderService implements IOrderService {
             logger.error("预下单失败");
             return ServerResponse.createByError("预下单失败");
         }
+    }
+
+    @Override
+//    @Transactional
+//    验证支付宝回调中的数据正确性
+    public ServerResponse<String> alipayCallback(Map<String, String> params) {
+        long outTradeNo = Long.parseLong(params.get("out_trade_no"));
+        String tradeNo = params.get("trade_no");
+        Order order = orderMapper.selectByOrderNo(outTradeNo);
+        if(order == null) return ServerResponse.createByError("系统中不存在该订单");
+//        避免支付宝重复通知
+        if(order.getStatus() >= Const.OrderStatusEnum.PAID.getCode()) return ServerResponse.createByError("支付宝重复调用");
+        String tradeStatus = params.get("trade_status");
+        if(StringUtils.equals(tradeStatus, Const.AlipayTradeStatus.TRADE_SUCCESS.name())) {
+            order.setStatus(Const.OrderStatusEnum.PAID.getCode());
+            try {
+                order.setPaymentTime(DateUtils.parseDate(params.get("gmt_payment"), "yyyy-MM-dd HH:mm:ss"));
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            int i = orderMapper.updateByPrimaryKeySelective(order);
+        }
+
+        PayInfo payInfo = new PayInfo();
+        payInfo.setUserId(order.getUserId());
+        payInfo.setOrderNo(order.getOrderNo());
+        payInfo.setPayPlatform(Const.PayPlatformEnum.ALIPAY.getCode());
+        payInfo.setPlatformNumber(tradeNo);
+        payInfo.setPlatformStatus(tradeStatus);
+        int insert = payInfoMapper.insert(payInfo);
+        return ServerResponse.createBySuccess();
     }
 }
