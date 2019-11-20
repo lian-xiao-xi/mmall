@@ -8,6 +8,7 @@ import com.mmall.common.ServerResponse;
 import com.mmall.pojo.User;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
+import com.mmall.vo.OrderVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,14 @@ public class OrderController {
 
     @Autowired
     private IOrderService iOrderService;
+
+    @RequestMapping(value = "create.do", method = RequestMethod.POST)
+    public ServerResponse<OrderVo> createOrder(@RequestParam int shippingId, @RequestParam List<Integer> cartIds, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        return iOrderService.createOrder(shippingId, cartIds, user.getId());
+    }
+
 
     @RequestMapping(value = "pay.do", method = RequestMethod.GET)
     public ServerResponse pay(@RequestParam long orderNo, HttpServletRequest request) {

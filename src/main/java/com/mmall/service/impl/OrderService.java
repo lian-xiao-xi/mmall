@@ -16,6 +16,7 @@ import com.mmall.pojo.OrderItem;
 import com.mmall.pojo.PayInfo;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
+import com.mmall.vo.OrderVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateParser;
@@ -51,6 +52,13 @@ public class OrderService implements IOrderService {
     private OrderItemMapper orderItemMapper;
     @Autowired
     private PayInfoMapper payInfoMapper;
+
+    @Override
+    public ServerResponse<OrderVo> createOrder(int shippingId, List<Integer> cartIds, int userId) {
+
+
+        return null;
+    }
 
     @Override
     public ServerResponse<Map<String, String>> pay(long orderNo, int userId) {
