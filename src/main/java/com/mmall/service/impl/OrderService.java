@@ -183,4 +183,13 @@ public class OrderService implements IOrderService {
         int insert = payInfoMapper.insert(payInfo);
         return ServerResponse.createBySuccess();
     }
+
+    @Override
+    public ServerResponse<String> queryOrderPayStatus(long orderNo, int userId) {
+        Order order = orderMapper.selectByUserIdAndOrderNo(orderNo, userId);
+        if(order == null) return ServerResponse.createByError("用户没有该订单");
+        if(order.getStatus() >= Const.OrderStatusEnum.PAID.getCode())
+            return ServerResponse.createBySuccess();
+        return ServerResponse.createByError();
+    }
 }

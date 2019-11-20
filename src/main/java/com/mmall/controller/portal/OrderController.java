@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.xml.ws.spi.http.HttpContext;
 import java.util.*;
 
 @RestController
@@ -84,5 +83,17 @@ public class OrderController {
         ServerResponse<String> serverResponse = iOrderService.alipayCallback(resultMap);
         if(serverResponse.isSuccess()) return Const.AlipayCallbackResponseCode.RESPONSE_SUCCESS;
         else return Const.AlipayCallbackResponseCode.RESPONSE_FAILED;
+    }
+
+    // 查询订单状态
+    @RequestMapping(value = "query_order_pay_status.do", method = RequestMethod.GET)
+    public ServerResponse<Boolean> pay(@RequestParam long orderNo, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null){
+            return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        }
+        ServerResponse<String> serverResponse = iOrderService.queryOrderPayStatus(orderNo, user.getId());
+        if(serverResponse.isSuccess()) return ServerResponse.createBySuccess(true);
+        else return ServerResponse.createBySuccess(false);
     }
 }
