@@ -6,34 +6,24 @@ import com.alipay.api.domain.ExtendParams;
 import com.alipay.api.domain.GoodsDetail;
 import com.alipay.api.request.AlipayTradePrecreateRequest;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
+import com.mmall.common.BigDecimalUtil;
 import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
-import com.mmall.dao.OrderItemMapper;
-import com.mmall.dao.OrderMapper;
-import com.mmall.dao.PayInfoMapper;
-import com.mmall.pojo.Order;
-import com.mmall.pojo.OrderItem;
-import com.mmall.pojo.PayInfo;
+import com.mmall.dao.*;
+import com.mmall.pojo.*;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
 import com.mmall.vo.OrderVo;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DateParser;
 import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.FastDateParser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.PropertyNamingStrategy;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,12 +42,50 @@ public class OrderService implements IOrderService {
     private OrderItemMapper orderItemMapper;
     @Autowired
     private PayInfoMapper payInfoMapper;
+    @Autowired
+    private CartMapper cartMapper;
+    @Autowired
+    private ProductMapper productMapper;
 
     @Override
-    public ServerResponse<OrderVo> createOrder(int shippingId, List<Integer> cartIds, int userId) {
-
+    public ServerResponse createOrder(int shippingId, List<Integer> cartIds, int userId) {
+        // 产生订单的购物车列表
+        List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
+        if(cartList.isEmpty()) return ServerResponse.createByError("购物车为空");
+        if(cartList.size() != cartIds.size()) return ServerResponse.createByError("部分购物车不存在，系统异常");
+        ServerResponse<List<OrderItem>> orderItemList = this.getOrderItemList(userId, cartList);
+        if(!orderItemList.isSuccess()) return orderItemList;
 
         return null;
+    }
+
+    // 产生子订单列表
+    private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<Cart> cartList) {
+        ArrayList<OrderItem> orderItemList = new ArrayList<>();
+
+        //校验购物车的数据,包括产品的状态和数量
+        for (Cart cart : cartList) {
+            if(cart == null) return ServerResponse.createByError("部分购物车异常，请刷新后重试");
+            Product product = productMapper.selectByPrimaryKey(cart.getProductId());
+            if(product == null) return ServerResponse.createByError("购物车中部分产品不存在，请刷新后重试");
+            String productName = product.getName();
+            // 检测产品是否为在线售卖状态
+            if(Const.ProductStatus.ON_SALE.getCode() != product.getStatus()) return ServerResponse.createByError(productName+"不是在线售卖状态");
+            // 检测产品库存
+            if(product.getStock() < cart.getQuantity()) {
+                return ServerResponse.createByError(productName+"库存不足");
+            }
+            OrderItem orderItem = new OrderItem();
+            orderItem.setUserId(userId);
+            orderItem.setCurrentUnitPrice(product.getPrice());
+            orderItem.setProductId(product.getId());
+            orderItem.setProductName(product.getName());
+            orderItem.setProductImage(product.getMainImage());
+            orderItem.setQuantity(cart.getQuantity());
+            orderItem.setTotalPrice(BigDecimalUtil.mul(cart.getQuantity(), product.getPrice().doubleValue()));
+            orderItemList.add(orderItem);
+        }
+        return ServerResponse.createBySuccess(orderItemList);
     }
 
     @Override

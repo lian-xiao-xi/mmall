@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface IOrderService {
-    ServerResponse<OrderVo> createOrder(int shippingId, List<Integer> cartIds, int userId);
+    ServerResponse createOrder(int shippingId, List<Integer> cartIds, int userId);
 
     ServerResponse<Map<String, String>> pay(long orderNo, int userId);
     ServerResponse<String> alipayCallback(Map<String, String> params);
