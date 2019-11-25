@@ -172,4 +172,17 @@
     where order_no = #{orderNo}
     and user_id = #{userId}
   </select>
+
+  <insert id="batchInsert" parameterType="java.util.List">
+    insert into mmall_order_item (id, order_no, product_id,
+    product_name, product_image, current_unit_price,
+    quantity, total_price, create_time,
+    update_time, user_id) values
+    <foreach collection="orderItems" item="item" index="index" separator=",">
+       (#{item.id,jdbcType=INTEGER}, #{item.orderNo,jdbcType=BIGINT}, #{item.productId,jdbcType=INTEGER},
+      #{productName,jdbcType=VARCHAR}, #{productImage,jdbcType=VARCHAR}, #{currentUnitPrice,jdbcType=DECIMAL},
+      #{quantity,jdbcType=INTEGER}, #{totalPrice,jdbcType=DECIMAL}, now(),
+      now(), #{item.userId,jdbcType=INTEGER})
+    </foreach>
+  </insert>
 </mapper>

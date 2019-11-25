@@ -212,4 +212,19 @@
       </foreach>
     </if>
   </select>
+
+  <update id="batchUpdate" parameterType="java.util.List">
+    update mmall_product
+    <trim prefix="set" suffixOverrides=",">
+      <trim prefix="stock = case" suffix="end,">
+        <foreach collection="productList" item="item" index="index">
+          when id=#{item.id} then #{item.stock}
+        </foreach>
+      </trim>
+    </trim>
+<!--    where id in-->
+<!--    <foreach collection="list" index="index" item="item" separator="," open="(" close=")">-->
+<!--      #{item.id,jdbcType=BIGINT}-->
+<!--    </foreach>-->
+  </update>
 </mapper>

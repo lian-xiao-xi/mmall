@@ -72,11 +72,21 @@ public class OrderService implements IOrderService {
             orderItem.setOrderNo(orderNo);
         }
 
-        // Todo 批量删除子订单
-        // Todo 减少相应产品库存
-        // Todo 清空购物车
-        // Todo 组合Vo返回
-        return null;
+        // 批量生成子订单
+        int batchInsert = orderItemMapper.batchInsert(orderItemList);
+        if(batchInsert != orderItemList.size()) return ServerResponse.createByError("生成子订单异常，系统异常");
+
+        // 更新产品库存
+        int updateProductNum = this.updateProductStock2(orderItemList);
+        if(updateProductNum != orderItemList.size()) return ServerResponse.createByError("更新产品库存异常，系统异常");
+
+        // 清空所选购物车
+        int deleteCartNum = cartMapper.deleteByUserIdAndIds(userId, cartIds);
+        if(deleteCartNum != cartIds.size()) return ServerResponse.createByError("清空购物车异常，系统异常");
+
+        // 组合Vo返回
+        OrderVo orderVo = this.assembleOrderVo(order, orderItemList);
+        return ServerResponse.createBySuccess(orderVo);
     }
 
     // 产生子订单列表
@@ -136,6 +146,36 @@ public class OrderService implements IOrderService {
     private long generateOrderNo(Integer userId) {
         String yyMMddHHmmss = DateFormatUtils.format(new Date(), "yyMMddHHmmss");
         return Long.parseLong(yyMMddHHmmss + userId + new Random().nextInt(100));
+    }
+
+    // 更新产品库存
+    private int updateProductStock(List<OrderItem> orderItemList) {
+        int updateNum = 0;
+        for (OrderItem orderItem:orderItemList) {
+            Product product = productMapper.selectByPrimaryKey(orderItem.getProductId());
+            product.setStock(product.getStock() - orderItem.getQuantity());
+            int i = productMapper.updateByPrimaryKey(product);
+            updateNum += i;
+        }
+        return updateNum;
+    }
+
+    // 更新产品库存
+    private int updateProductStock2(List<OrderItem> orderItemList) {
+        ArrayList<Product> products = new ArrayList<>();
+        for (OrderItem orderItem:orderItemList) {
+            Product product = new Product();
+            product.setId(orderItem.getProductId());
+            product.setStock(product.getStock() - orderItem.getQuantity());
+            products.add(product);
+        }
+        int i = productMapper.batchUpdate(products);
+        return i;
+    }
+
+    // Todo 构造返回的Vo
+    private OrderVo assembleOrderVo(Order order, List<OrderItem> orderItemList) {
+        return null;
     }
 
 

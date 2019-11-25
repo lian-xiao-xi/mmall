@@ -154,4 +154,15 @@
       </foreach>
     </if>
   </select>
+
+    <delete id="deleteByUserIdAndIds" parameterType="map" >
+        delete from mmall_cart
+        where user_id = #{userId}
+        <if test="cartIdList != null and cartIdList.size() > 0">
+            and id in
+            <foreach collection="cartIdList" item="item" index="index" open="(" close=")" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </delete>
 </mapper>
