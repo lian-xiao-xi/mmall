@@ -15,6 +15,7 @@ import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
 import com.mmall.vo.OrderVo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.PropertyNamingStrategy;
@@ -24,11 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +45,8 @@ public class OrderService implements IOrderService {
     private CartMapper cartMapper;
     @Autowired
     private ProductMapper productMapper;
+    @Autowired
+    private ShippingMapper shippingMapper;
 
     @Override
     public ServerResponse createOrder(int shippingId, List<Integer> cartIds, int userId) {
@@ -53,9 +54,28 @@ public class OrderService implements IOrderService {
         List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
         if(cartList.isEmpty()) return ServerResponse.createByError("购物车为空");
         if(cartList.size() != cartIds.size()) return ServerResponse.createByError("部分购物车不存在，系统异常");
-        ServerResponse<List<OrderItem>> orderItemList = this.getOrderItemList(userId, cartList);
-        if(!orderItemList.isSuccess()) return orderItemList;
+        ServerResponse<List<OrderItem>> orderItemsResponse = this.getOrderItemList(userId, cartList);
+        if(!orderItemsResponse.isSuccess()) return orderItemsResponse;
 
+        List<OrderItem> orderItemList = orderItemsResponse.getData();
+        // 订单总价
+        BigDecimal orderTotalPrice = this.getOrderTotalPrice(orderItemList);
+
+        // 生成订单
+        ServerResponse<Order> orderResponse = this.generateOrder(userId, shippingId, orderTotalPrice);
+        if(!orderResponse.isSuccess()) return orderResponse;
+        Order order = orderResponse.getData();
+        long orderNo = order.getOrderNo();
+
+        // 设置子订单对应的订单号
+        for (OrderItem orderItem : orderItemList) {
+            orderItem.setOrderNo(orderNo);
+        }
+
+        // Todo 批量删除子订单
+        // Todo 减少相应产品库存
+        // Todo 清空购物车
+        // Todo 组合Vo返回
         return null;
     }
 
@@ -87,6 +107,39 @@ public class OrderService implements IOrderService {
         }
         return ServerResponse.createBySuccess(orderItemList);
     }
+
+    // 结算订单总价
+    private BigDecimal getOrderTotalPrice(List<OrderItem> orderItemList) {
+        return orderItemList.stream().map(OrderItem::getTotalPrice).reduce(new BigDecimal("0"), BigDecimal::add);
+    }
+
+    // 生成订单
+    private ServerResponse<Order> generateOrder(Integer userId, Integer shippingId, BigDecimal totalPrice) {
+        Shipping shipping = shippingMapper.selectByIdAndUserId(shippingId, userId);
+        if(shipping == null) return ServerResponse.createByError("生成订单异常，收货地址不存在");
+        Order order = new Order();
+        order.setShippingId(shippingId);
+        long orderNo = this.generateOrderNo(userId);
+        order.setOrderNo(orderNo);
+        order.setPayment(totalPrice);
+        order.setStatus(Const.OrderStatusEnum.NO_PAY.getCode());
+        order.setPaymentType(Const.PaymentTypeEnum.ONLINE_PAY.getCode());
+        order.setPostage(0);
+        order.setUserId(userId);
+        // 发货时间、付款时间以后设置
+        int insert = orderMapper.insert(order);
+        if(insert>0) return ServerResponse.createBySuccess(order);
+        return ServerResponse.createByError("生成订单异常");
+    }
+
+    // 生成订单号
+    private long generateOrderNo(Integer userId) {
+        String yyMMddHHmmss = DateFormatUtils.format(new Date(), "yyMMddHHmmss");
+        return Long.parseLong(yyMMddHHmmss + userId + new Random().nextInt(100));
+    }
+
+
+
 
     @Override
     public ServerResponse<Map<String, String>> pay(long orderNo, int userId) {

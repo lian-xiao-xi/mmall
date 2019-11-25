@@ -30,7 +30,7 @@ public class OrderController {
     private IOrderService iOrderService;
 
     @RequestMapping(value = "create.do", method = RequestMethod.POST)
-    public ServerResponse<OrderVo> createOrder(@RequestParam int shippingId, @RequestParam List<Integer> cartIds, HttpSession session) {
+    public ServerResponse createOrder(@RequestParam int shippingId, @RequestParam List<Integer> cartIds, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
         return iOrderService.createOrder(shippingId, cartIds, user.getId());
