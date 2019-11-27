@@ -13,7 +13,9 @@ import com.mmall.dao.*;
 import com.mmall.pojo.*;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
+import com.mmall.vo.OrderItemVo;
 import com.mmall.vo.OrderVo;
+import com.mmall.vo.ShippingVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -21,6 +23,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.PropertyNamingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -65,8 +68,12 @@ public class OrderService implements IOrderService {
         ServerResponse<Order> orderResponse = this.generateOrder(userId, shippingId, orderTotalPrice);
         if(!orderResponse.isSuccess()) return orderResponse;
         Order order = orderResponse.getData();
-        long orderNo = order.getOrderNo();
 
+        // 检测收获地址
+        Shipping shipping = shippingMapper.selectByIdAndUserId(order.getShippingId(), userId);
+        if(shipping == null) return ServerResponse.createByError("创建订单异常，收货地址不存在");
+
+        long orderNo = order.getOrderNo();
         // 设置子订单对应的订单号
         for (OrderItem orderItem : orderItemList) {
             orderItem.setOrderNo(orderNo);
@@ -85,7 +92,7 @@ public class OrderService implements IOrderService {
         if(deleteCartNum != cartIds.size()) return ServerResponse.createByError("清空购物车异常，系统异常");
 
         // 组合Vo返回
-        OrderVo orderVo = this.assembleOrderVo(order, orderItemList);
+        OrderVo orderVo = this.assembleOrderVo(order, shipping, orderItemList);
         return ServerResponse.createBySuccess(orderVo);
     }
 
@@ -125,8 +132,6 @@ public class OrderService implements IOrderService {
 
     // 生成订单
     private ServerResponse<Order> generateOrder(Integer userId, Integer shippingId, BigDecimal totalPrice) {
-        Shipping shipping = shippingMapper.selectByIdAndUserId(shippingId, userId);
-        if(shipping == null) return ServerResponse.createByError("生成订单异常，收货地址不存在");
         Order order = new Order();
         order.setShippingId(shippingId);
         long orderNo = this.generateOrderNo(userId);
@@ -173,10 +178,46 @@ public class OrderService implements IOrderService {
         return i;
     }
 
-    // Todo 构造返回的Vo
-    private OrderVo assembleOrderVo(Order order, List<OrderItem> orderItemList) {
-        return null;
+    // 构造返回前端的Vo
+    private OrderVo assembleOrderVo(Order order, Shipping shipping, List<OrderItem> orderItemList) {
+        OrderVo orderVo = new OrderVo();
+
+//        orderVo.setOrderNo(order.getOrderNo());
+//        orderVo.setPayment(order.getPayment());
+//        orderVo.setPaymentType(order.getPaymentType());
+//        orderVo.setPostage(order.getPostage());
+//        orderVo.setStatus(order.getStatus());
+//        orderVo.setPaymentTime(order.getPaymentTime());
+//        orderVo.setSendTime(order.getSendTime());
+//        orderVo.setEndTime(order.getEndTime());
+//        orderVo.setCloseTime(order.getCloseTime());
+//        orderVo.setCreateTime(order.getCreateTime());
+
+        BeanUtils.copyProperties(order, orderVo);
+
+        ShippingVo shippingVo = this.assembleShippingVo(shipping);
+        orderVo.setShippingVo(shippingVo);
+
+        List<OrderItemVo> orderItemVoList = orderItemList.stream().map(this::assembleOrderItemVo).collect(Collectors.toList());
+        orderVo.setOrderItemVoList(orderItemVoList);
+
+        orderVo.setImageHost(PropertiesUtil.getProperty("ftp.server.http.prefix"));
+        return orderVo;
     }
+
+    private OrderItemVo assembleOrderItemVo(OrderItem orderItem) {
+        OrderItemVo orderItemVo = new OrderItemVo();
+        BeanUtils.copyProperties(orderItem, orderItemVo);
+        return orderItemVo;
+    }
+
+    private ShippingVo assembleShippingVo(Shipping shipping) {
+        ShippingVo shippingVo = new ShippingVo();
+        BeanUtils.copyProperties(shipping, shippingVo);
+        return shippingVo;
+    }
+
+
 
 
 
