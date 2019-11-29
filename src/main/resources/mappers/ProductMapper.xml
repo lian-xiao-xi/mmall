@@ -217,14 +217,16 @@
     update mmall_product
     <trim prefix="set" suffixOverrides=",">
       <trim prefix="stock = case" suffix="end,">
-        <foreach collection="productList" item="item" index="index">
+--       collection 属性的值为 list 而不是 mapper 接口方法的参数变量名
+        <foreach collection="list" item="item" index="index">
           when id=#{item.id} then #{item.stock}
         </foreach>
       </trim>
     </trim>
-<!--    where id in-->
-<!--    <foreach collection="list" index="index" item="item" separator="," open="(" close=")">-->
-<!--      #{item.id,jdbcType=BIGINT}-->
-<!--    </foreach>-->
+--     下面的where语句不可删除，否则报错
+    where id in
+    <foreach collection="list" index="index" item="item" separator="," open="(" close=")">
+      #{item.id}
+    </foreach>
   </update>
 </mapper>

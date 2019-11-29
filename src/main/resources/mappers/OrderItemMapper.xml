@@ -180,8 +180,8 @@
     update_time, user_id) values
     <foreach collection="orderItems" item="item" index="index" separator=",">
        (#{item.id,jdbcType=INTEGER}, #{item.orderNo,jdbcType=BIGINT}, #{item.productId,jdbcType=INTEGER},
-      #{productName,jdbcType=VARCHAR}, #{productImage,jdbcType=VARCHAR}, #{currentUnitPrice,jdbcType=DECIMAL},
-      #{quantity,jdbcType=INTEGER}, #{totalPrice,jdbcType=DECIMAL}, now(),
+      #{item.productName,jdbcType=VARCHAR}, #{item.productImage,jdbcType=VARCHAR}, #{item.currentUnitPrice,jdbcType=DECIMAL},
+      #{item.quantity,jdbcType=INTEGER}, #{item.totalPrice,jdbcType=DECIMAL}, now(),
       now(), #{item.userId,jdbcType=INTEGER})
     </foreach>
   </insert>

@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -52,6 +53,8 @@ public class OrderService implements IOrderService {
     private ShippingMapper shippingMapper;
 
     @Override
+    // 这里的事务注解不管用（问题重现：把 updateProductStock2 方法中的 productMapper.batchUpdate 对应的 mybatis xml 文件的 sql 语句故意改为错误语法，使程序报错，可以发现仍然会在 order 表中插入一条记录）
+    @Transactional
     public ServerResponse createOrder(int shippingId, List<Integer> cartIds, int userId) {
         // 产生订单的购物车列表
         List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
@@ -169,8 +172,9 @@ public class OrderService implements IOrderService {
     private int updateProductStock2(List<OrderItem> orderItemList) {
         ArrayList<Product> products = new ArrayList<>();
         for (OrderItem orderItem:orderItemList) {
-            Product product = new Product();
-            product.setId(orderItem.getProductId());
+//            Product product = new Product();
+            Product product = productMapper.selectByPrimaryKey(orderItem.getProductId());
+//            product.setId(orderItem.getProductId());
             product.setStock(product.getStock() - orderItem.getQuantity());
             products.add(product);
         }
