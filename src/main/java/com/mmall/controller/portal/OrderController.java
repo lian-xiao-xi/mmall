@@ -36,6 +36,14 @@ public class OrderController {
         return iOrderService.createOrder(shippingId, cartIds, user.getId());
     }
 
+    // 获取订单详情
+    @RequestMapping(value = "get_order_cart_product.do", method = RequestMethod.GET)
+    public ServerResponse getOrderCartProduct(@RequestParam List<Integer> cartIds, HttpSession session){
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        return null;
+    }
+
 
     @RequestMapping(value = "pay.do", method = RequestMethod.GET)
     public ServerResponse pay(@RequestParam long orderNo, HttpServletRequest request) {
