@@ -158,6 +158,43 @@ public class OrderService implements IOrderService {
         return ServerResponse.createBySuccess("取消订单成功");
     }
 
+    @Override
+    public ServerResponse<PageInfo<OrderVo>> managerOrderList(PageVo page) {
+        PageHelper.startPage(page.getPageNum(), page.getPageSize(), "create_time desc");
+        List<Order> orderList = orderMapper.selectAllOrder();
+        List<OrderVo> orderVoList = orderList.stream().map(this::assembleOrderVo).collect(Collectors.toList());
+        PageInfo<OrderVo> orderVoPageInfo = new PageInfo<>(orderVoList);
+        return ServerResponse.createBySuccess(orderVoPageInfo);
+    }
+
+    @Override
+    public ServerResponse<OrderVo> managerOrderDetail(Long orderNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if(order == null) return ServerResponse.createByError("找不到该订单");
+        OrderVo orderVo = this.assembleOrderVo(order);
+        return ServerResponse.createBySuccess(orderVo);
+    }
+
+    @Override
+    public ServerResponse<PageInfo<OrderVo>> managerOrderSearch(Long orderNo, PageVo page) {
+//        Order order = orderMapper.selectByOrderNo(orderNo);
+//        if(order == null) return ServerResponse.createByError("找不到该订单");
+//        PageHelper.startPage(page.getPageNum(), page.getPageSize(), "create_time desc");
+        return null;
+    }
+
+    @Override
+    public ServerResponse<String> manageSendProduct(Long orderNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if(order == null) return ServerResponse.createByError("找不到该订单");
+        if(order.getStatus() != Const.OrderStatusEnum.PAID.getCode()) return ServerResponse.createByError("订单状态异常");
+        order.setStatus(Const.OrderStatusEnum.SHIPPED.getCode());
+        order.setSendTime(new Date());
+        int i = orderMapper.updateByPrimaryKey(order);
+        if(i>0) return ServerResponse.createBySuccess("发货成功");
+        return ServerResponse.createByError("发货失败");
+    }
+
     // 产生子订单列表
     private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<OrderProductInfoVo> productList) {
         ArrayList<OrderItem> orderItemList = new ArrayList<>();
@@ -271,6 +308,13 @@ public class OrderService implements IOrderService {
     private OrderVo assembleOrderVo(Order order, Integer userId) {
         List<OrderItem> orderItemList = orderItemMapper.getByOrderNoUserId(userId, order.getOrderNo());
         Shipping shipping = shippingMapper.selectByIdAndUserId(order.getShippingId(), userId);
+        return this.assembleOrderVo(order, shipping, orderItemList);
+    }
+
+    // 根据order生成orderVo (没有限制用户id, 后台管理系统api接口中使用)
+    private OrderVo assembleOrderVo(Order order) {
+        List<OrderItem> orderItemList = orderItemMapper.selectByOrderNo(order.getOrderNo());
+        Shipping shipping = shippingMapper.selectByPrimaryKey(order.getShippingId());
         return this.assembleOrderVo(order, shipping, orderItemList);
     }
 

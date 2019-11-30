@@ -173,6 +173,13 @@
     and user_id = #{userId}
   </select>
 
+  <select id="selectByOrderNo" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List"/>
+    from mmall_order_item
+    where order_no = #{orderNo}
+  </select>
+
   <insert id="batchInsert" parameterType="java.util.List">
     insert into mmall_order_item (id, order_no, product_id,
     product_name, product_image, current_unit_price,

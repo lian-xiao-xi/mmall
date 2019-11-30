@@ -223,4 +223,10 @@
 --     order by create_time desc
   </select>
 
+  <select id="selectAllOrder" resultMap="BaseResultMap">
+    SELECT
+    <include refid="Base_Column_List"></include>
+    from mmall_order
+  </select>
+
 </mapper>

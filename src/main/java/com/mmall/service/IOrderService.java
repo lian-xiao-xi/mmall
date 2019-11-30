@@ -17,6 +17,11 @@ public interface IOrderService {
     ServerResponse<OrderVo> userOrderDetail(Long orderNo, Integer userId);
     ServerResponse<String> cancelOrder(Long orderNo, Integer userId);
 
+    ServerResponse<PageInfo<OrderVo>> managerOrderList(PageVo page);
+    ServerResponse<OrderVo> managerOrderDetail(Long orderNo);
+    ServerResponse<PageInfo<OrderVo>> managerOrderSearch(Long orderNo, PageVo pageVo);
+    ServerResponse<String> manageSendProduct(Long orderNo);
+
     ServerResponse<Map<String, String>> pay(long orderNo, int userId);
     ServerResponse<String> alipayCallback(Map<String, String> params);
     ServerResponse<String> queryOrderPayStatus(long orderNo, int userId);
