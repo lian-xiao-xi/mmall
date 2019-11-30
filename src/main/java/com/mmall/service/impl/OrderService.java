@@ -6,11 +6,16 @@ import com.alipay.api.domain.ExtendParams;
 import com.alipay.api.domain.GoodsDetail;
 import com.alipay.api.request.AlipayTradePrecreateRequest;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.mmall.common.BigDecimalUtil;
 import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.*;
 import com.mmall.domain.CreateOrderVo;
+import com.mmall.domain.OrderProductInfoVo;
+import com.mmall.domain.PageVo;
 import com.mmall.pojo.*;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
@@ -58,7 +63,8 @@ public class OrderService implements IOrderService {
     @Transactional
     public ServerResponse createOrder(CreateOrderVo vo, int userId) {
         Integer shippingId = vo.getShippingId();
-        List<CreateOrderVo.ProductInfo> productList = vo.getProductList();
+        List<OrderProductInfoVo> productList = vo.getProductList();
+        if(productList.isEmpty()) return ServerResponse.createByError("error 订单中没有商品");
 
         ServerResponse<List<OrderItem>> orderItemsResponse = this.getOrderItemList(userId, productList);
         if(!orderItemsResponse.isSuccess()) return orderItemsResponse;
@@ -91,7 +97,7 @@ public class OrderService implements IOrderService {
         if(updateProductNum != orderItemList.size()) return ServerResponse.createByError("更新产品库存异常，系统异常");
 
         // 清空所选购物车
-        List<Integer> productIds = productList.stream().map(CreateOrderVo.ProductInfo::getProductId).collect(Collectors.toList());
+        List<Integer> productIds = productList.stream().map(OrderProductInfoVo::getProductId).collect(Collectors.toList());
         int deleteCartNum = cartMapper.deleteByUserIdAndProductIds(userId, productIds);
         if(deleteCartNum != productIds.size()) return ServerResponse.createByError("清空购物车异常，系统异常");
 
@@ -100,19 +106,71 @@ public class OrderService implements IOrderService {
         return ServerResponse.createBySuccess(orderVo);
     }
 
+    @Override
+    public ServerResponse orderDetail(List<Integer> cartIds, int userId) {
+        // 产生订单的购物车列表
+        List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
+        if(cartList.isEmpty()) return ServerResponse.createByError("没有选择任何购物车商品");
+        if(cartList.size() != cartIds.size()) return ServerResponse.createByError("选择的一些购物车不存在了");
+        List<OrderProductInfoVo> productInfoVos = cartList.stream().map(cart -> {
+            OrderProductInfoVo productInfoVo = new OrderProductInfoVo();
+            productInfoVo.setProductId(cart.getProductId());
+            productInfoVo.setNum(cart.getQuantity());
+            return productInfoVo;
+        }).collect(Collectors.toList());
+        ServerResponse<List<OrderItem>> serverResponse = this.getOrderItemList(userId, productInfoVos);
+        if(!serverResponse.isSuccess()) return serverResponse;
+        List<OrderItem> orderItemList = serverResponse.getData();
+        List<OrderItemVo> orderItemVoList = orderItemList.stream().map(this::assembleOrderItemVo).collect(Collectors.toList());
+        return ServerResponse.createBySuccess(orderItemVoList);
+    }
+
+    /*
+     * Todo 记录一个问题：用户 “我的订单” 订单列表、订单详情接口中，如果当时那个订单的收货地址已经删除了，那么就无法显示这个订单的收货地址信息了。
+     *  目前能想到的解决方案，订单表中冗余订单的收货地址信息，在创建订单时将收货地址信息写入订单表。但是个人觉得这个方案不很好，因为基本上要把收货地址表中的字段全都冗余到订单表 =_=
+     * */
+    @Override
+    public ServerResponse<PageInfo<OrderVo>> userOrderList(PageVo page, int userId) {
+        PageHelper.startPage(page.getPageNum(), page.getPageSize(), "create_time desc");
+        List<Order> orderList = orderMapper.selectByUserId(userId);
+        List<OrderVo> orderVoList = orderList.stream().map(order -> this.assembleOrderVo(order, userId)).collect(Collectors.toList());
+        PageInfo<OrderVo> orderVoPageInfo = new PageInfo<>(orderVoList);
+        return ServerResponse.createBySuccess(orderVoPageInfo);
+    }
+
+    @Override
+    public ServerResponse<OrderVo> userOrderDetail(Long orderNo, Integer userId) {
+        Order order = orderMapper.selectByUserIdAndOrderNo(orderNo, userId);
+        if(order == null) return ServerResponse.createByError("找不到该订单");
+        OrderVo orderVo = this.assembleOrderVo(order, userId);
+        return ServerResponse.createBySuccess(orderVo);
+    }
+
+    @Override
+    @Transactional
+    public ServerResponse<String> cancelOrder(Long orderNo, Integer userId) {
+        Order order = orderMapper.selectByUserIdAndOrderNo(orderNo, userId);
+        if(order == null) return ServerResponse.createByError("找不到该订单");
+        if(order.getStatus() != Const.OrderStatusEnum.NO_PAY.getCode()) return ServerResponse.createByError("订单已付款，无法取消");
+        order.setStatus(Const.OrderStatusEnum.CANCELED.getCode());
+        int i = orderMapper.updateByPrimaryKey(order);
+        if(i <= 0) return ServerResponse.createByError("更新订单失败");
+        return ServerResponse.createBySuccess("取消订单成功");
+    }
+
     // 产生子订单列表
-    private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<CreateOrderVo.ProductInfo> productList) {
+    private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<OrderProductInfoVo> productList) {
         ArrayList<OrderItem> orderItemList = new ArrayList<>();
 
         //校验产品的数据,包括产品的状态和数量
-        for (CreateOrderVo.ProductInfo productInfo : productList) {
+        for (OrderProductInfoVo productInfo : productList) {
             Product product = productMapper.selectByPrimaryKey(productInfo.getProductId());
             if(product == null) return ServerResponse.createByError("订单中部分产品不存在，请刷新后重试");
             String productName = product.getName();
             // 检测产品是否为在线售卖状态
             if(Const.ProductStatus.ON_SALE.getCode() != product.getStatus()) return ServerResponse.createByError(productName+"不是在线售卖状态");
             // 检测产品库存
-            if(product.getStock() < productInfo.getQuantity()) {
+            if(product.getStock() < productInfo.getNum()) {
                 return ServerResponse.createByError(productName+"库存不足");
             }
             OrderItem orderItem = new OrderItem();
@@ -121,8 +179,8 @@ public class OrderService implements IOrderService {
             orderItem.setProductId(product.getId());
             orderItem.setProductName(product.getName());
             orderItem.setProductImage(product.getMainImage());
-            orderItem.setQuantity(productInfo.getQuantity());
-            orderItem.setTotalPrice(BigDecimalUtil.mul(productInfo.getQuantity(), product.getPrice().doubleValue()));
+            orderItem.setQuantity(productInfo.getNum());
+            orderItem.setTotalPrice(BigDecimalUtil.mul(productInfo.getNum(), product.getPrice().doubleValue()));
             orderItemList.add(orderItem);
         }
         return ServerResponse.createBySuccess(orderItemList);
@@ -209,13 +267,22 @@ public class OrderService implements IOrderService {
         return orderVo;
     }
 
+    // 根据order生成orderVo
+    private OrderVo assembleOrderVo(Order order, Integer userId) {
+        List<OrderItem> orderItemList = orderItemMapper.getByOrderNoUserId(userId, order.getOrderNo());
+        Shipping shipping = shippingMapper.selectByIdAndUserId(order.getShippingId(), userId);
+        return this.assembleOrderVo(order, shipping, orderItemList);
+    }
+
     private OrderItemVo assembleOrderItemVo(OrderItem orderItem) {
+        if(orderItem == null) return null;
         OrderItemVo orderItemVo = new OrderItemVo();
         BeanUtils.copyProperties(orderItem, orderItemVo);
         return orderItemVo;
     }
 
     private ShippingVo assembleShippingVo(Shipping shipping) {
+        if(shipping == null) return null;
         ShippingVo shippingVo = new ShippingVo();
         BeanUtils.copyProperties(shipping, shippingVo);
         return shippingVo;

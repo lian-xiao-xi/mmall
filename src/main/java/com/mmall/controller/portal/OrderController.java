@@ -2,10 +2,12 @@ package com.mmall.controller.portal;
 
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.internal.util.AlipaySignature;
+import com.github.pagehelper.PageInfo;
 import com.mmall.common.Const;
 import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.domain.CreateOrderVo;
+import com.mmall.domain.PageVo;
 import com.mmall.pojo.User;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
@@ -34,12 +36,36 @@ public class OrderController {
         return iOrderService.createOrder(vo, user.getId());
     }
 
-    // 获取订单详情
+    // 提交订单前（确认订单时），获取订单中所含的商品清单列表详情
     @RequestMapping(value = "get_order_cart_product.do", method = RequestMethod.GET)
     public ServerResponse getOrderCartProduct(@RequestParam List<Integer> cartIds, HttpSession session){
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
-        return null;
+        return iOrderService.orderDetail(cartIds, user.getId());
+    }
+
+    // 用户 “我的订单” 订单列表
+    @RequestMapping(value = "order_list.do", method = RequestMethod.GET)
+    public ServerResponse<PageInfo<OrderVo>> getMyOrderList(PageVo page, HttpSession session){
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        return iOrderService.userOrderList(page, user.getId());
+    }
+
+    // 用户 “我的订单” 单个订单详情
+    @RequestMapping(value = "detail.do", method = RequestMethod.GET)
+    public ServerResponse<OrderVo> orderDetail(@RequestParam long orderNo, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        return iOrderService.userOrderDetail(orderNo, user.getId());
+    }
+
+    // 取消订单
+    @RequestMapping(value = "cancel.do", method = RequestMethod.POST)
+    public ServerResponse<String> cancelOrder(@RequestParam long orderNo, HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+        return iOrderService.cancelOrder(orderNo, user.getId());
     }
 
 
