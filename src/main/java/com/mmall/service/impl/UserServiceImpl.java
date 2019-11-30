@@ -1,6 +1,7 @@
 package com.mmall.service.impl;
 
 import com.mmall.common.Const;
+import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.common.TokenCache;
 import com.mmall.dao.UserMapper;
@@ -177,16 +178,17 @@ public class UserServiceImpl implements IUserService {
   // 当前用户是否为管理员角色
   // Todo 后期观察一下是否需要将返回值改为Boolean来重构此方法
   @Override
-  public ServerResponse isAdminRole(User user) {
-    if(user != null && user.getRole() == Const.Roles.ROLE_ADMIN) {
+  public <T> ServerResponse<T> isAdminRole(User user) {
+    if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
+    if(user.getRole() == Const.Roles.ROLE_ADMIN) {
       return ServerResponse.createBySuccess();
     }
-    return ServerResponse.createByError();
+    return ServerResponse.createByError(ResponseCode.PERMISSIONS_INSUFFICIENT.getCode(), ResponseCode.PERMISSIONS_INSUFFICIENT.getDesc());
   }
-  
+
   // Todo 后期观察是否能使用此方法来替换 Service 层大量判断当前用户是否为管理员的重复代码
   @Override
-  public ServerResponse isAdminRole(HttpSession session) {
+  public <T> ServerResponse<T> isAdminRole(HttpSession session) {
     User user = (User) session.getAttribute(Const.CURRENT_USER);
     return this.isAdminRole(user);
   }

@@ -4,6 +4,7 @@ public enum ResponseCode {
   SUCCESS(0, "SUCCESS"),
   ERROR(1, "ERROR"),
   NEED_LOGIN(10, "NEED_LOGIN"),
+  PERMISSIONS_INSUFFICIENT(11, "用户权限不足"),
   ILLEGAL_ARGUMENT(2, "ILLEGAL_ARGUMENT"),
   // 商品添加购物车或更新购物车商品数量时商品库存不足
   INVENTORY_SHORTAGE(3, "库存不足");
