@@ -41,7 +41,7 @@ public class OrderController {
     public ServerResponse getOrderCartProduct(@RequestParam List<Integer> cartIds, HttpSession session){
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
-        return iOrderService.orderDetail(cartIds, user.getId());
+        return iOrderService.getOrderCartProduct(cartIds, user.getId());
     }
 
     // 用户 “我的订单” 订单列表
