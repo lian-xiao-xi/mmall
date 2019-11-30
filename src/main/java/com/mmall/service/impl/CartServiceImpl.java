@@ -56,9 +56,11 @@ public class CartServiceImpl implements ICartService {
 
     @Override
     public ServerResponse<Integer> add(Integer userId, Integer productId, Integer count) {
+        if(count == null || productId == null) return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+
         Product product = productMapper.selectByPrimaryKey(productId);
         if(product == null) {
-            return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+            return ServerResponse.createByError("不存在此商品");
         }
         Integer stock = product.getStock();
         Cart cart = cartMapper.selectCartByUserIdAndProductId(userId, productId);
