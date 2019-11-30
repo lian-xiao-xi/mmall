@@ -9,9 +9,11 @@ import com.mmall.vo.CartVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpSession;
+import java.util.List;
 
 @RestController
 @RequestMapping("/cart")
@@ -53,11 +55,11 @@ public class CartController {
 
     // 删除、批量删除
     @RequestMapping(value = "delete.do", method = RequestMethod.POST)
-    public ServerResponse<String> deleteCartProduct(String productIds, HttpSession session) {
+    public ServerResponse<String> deleteCartProduct(@RequestParam List<Integer> cartIds, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user == null) {
             return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
         }
-        return iCartService.deleteProduct(user.getId(), productIds);
+        return iCartService.deleteProduct(user.getId(), cartIds);
     }
 }

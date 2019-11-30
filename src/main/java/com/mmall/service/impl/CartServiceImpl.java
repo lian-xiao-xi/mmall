@@ -122,12 +122,10 @@ public class CartServiceImpl implements ICartService {
     }
 
     @Override
-    public ServerResponse<String> deleteProduct(Integer userId, String productIds) {
-        String[] ids = productIds.split(",");
-        List<String> idsList = Arrays.asList(ids);
-        if(idsList.isEmpty()) return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
-        int i = cartMapper.deleteByUserIdAndProductIds(userId, idsList);
-        if(i == idsList.size()) return ServerResponse.createBySuccessMessage("删除成功");
-        else return ServerResponse.createByError("删除失败，可能是部分购物车已不存在");
+    public ServerResponse<String> deleteProduct(Integer userId, List<Integer> cartIds) {
+        if(cartIds.isEmpty()) return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+        int i = cartMapper.deleteByUserIdAndIds(userId, cartIds);
+        if(i == cartIds.size()) return ServerResponse.createBySuccessMessage("删除成功");
+        else return ServerResponse.createByError("删除失败，部分购物车已不存在");
     }
 }
