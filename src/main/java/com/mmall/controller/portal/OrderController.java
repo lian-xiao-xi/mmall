@@ -5,6 +5,7 @@ import com.alipay.api.internal.util.AlipaySignature;
 import com.mmall.common.Const;
 import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
+import com.mmall.domain.CreateOrderVo;
 import com.mmall.pojo.User;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
@@ -12,10 +13,7 @@ import com.mmall.vo.OrderVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -30,10 +28,10 @@ public class OrderController {
     private IOrderService iOrderService;
 
     @RequestMapping(value = "create.do", method = RequestMethod.POST)
-    public ServerResponse createOrder(@RequestParam int shippingId, @RequestParam List<Integer> cartIds, HttpSession session) {
+    public ServerResponse createOrder(@RequestBody CreateOrderVo vo, HttpSession session) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
-        return iOrderService.createOrder(shippingId, cartIds, user.getId());
+        return iOrderService.createOrder(vo, user.getId());
     }
 
     // 获取订单详情

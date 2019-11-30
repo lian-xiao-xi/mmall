@@ -10,6 +10,7 @@ import com.mmall.common.BigDecimalUtil;
 import com.mmall.common.Const;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.*;
+import com.mmall.domain.CreateOrderVo;
 import com.mmall.pojo.*;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
@@ -55,12 +56,11 @@ public class OrderService implements IOrderService {
     @Override
     // 这里的事务注解不管用（问题重现：把 updateProductStock2 方法中的 productMapper.batchUpdate 对应的 mybatis xml 文件的 sql 语句故意改为错误语法，使程序报错，可以发现仍然会在 order 表中插入一条记录）
     @Transactional
-    public ServerResponse createOrder(int shippingId, List<Integer> cartIds, int userId) {
-        // 产生订单的购物车列表
-        List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
-        if(cartList.isEmpty()) return ServerResponse.createByError("购物车为空");
-        if(cartList.size() != cartIds.size()) return ServerResponse.createByError("部分购物车不存在，系统异常");
-        ServerResponse<List<OrderItem>> orderItemsResponse = this.getOrderItemList(userId, cartList);
+    public ServerResponse createOrder(CreateOrderVo vo, int userId) {
+        Integer shippingId = vo.getShippingId();
+        List<CreateOrderVo.ProductInfo> productList = vo.getProductList();
+
+        ServerResponse<List<OrderItem>> orderItemsResponse = this.getOrderItemList(userId, productList);
         if(!orderItemsResponse.isSuccess()) return orderItemsResponse;
 
         List<OrderItem> orderItemList = orderItemsResponse.getData();
@@ -91,8 +91,9 @@ public class OrderService implements IOrderService {
         if(updateProductNum != orderItemList.size()) return ServerResponse.createByError("更新产品库存异常，系统异常");
 
         // 清空所选购物车
-        int deleteCartNum = cartMapper.deleteByUserIdAndIds(userId, cartIds);
-        if(deleteCartNum != cartIds.size()) return ServerResponse.createByError("清空购物车异常，系统异常");
+        List<Integer> productIds = productList.stream().map(CreateOrderVo.ProductInfo::getProductId).collect(Collectors.toList());
+        int deleteCartNum = cartMapper.deleteByUserIdAndProductIds(userId, productIds);
+        if(deleteCartNum != productIds.size()) return ServerResponse.createByError("清空购物车异常，系统异常");
 
         // 组合Vo返回
         OrderVo orderVo = this.assembleOrderVo(order, shipping, orderItemList);
@@ -100,19 +101,18 @@ public class OrderService implements IOrderService {
     }
 
     // 产生子订单列表
-    private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<Cart> cartList) {
+    private ServerResponse<List<OrderItem>> getOrderItemList(int userId, List<CreateOrderVo.ProductInfo> productList) {
         ArrayList<OrderItem> orderItemList = new ArrayList<>();
 
-        //校验购物车的数据,包括产品的状态和数量
-        for (Cart cart : cartList) {
-            if(cart == null) return ServerResponse.createByError("部分购物车异常，请刷新后重试");
-            Product product = productMapper.selectByPrimaryKey(cart.getProductId());
-            if(product == null) return ServerResponse.createByError("购物车中部分产品不存在，请刷新后重试");
+        //校验产品的数据,包括产品的状态和数量
+        for (CreateOrderVo.ProductInfo productInfo : productList) {
+            Product product = productMapper.selectByPrimaryKey(productInfo.getProductId());
+            if(product == null) return ServerResponse.createByError("订单中部分产品不存在，请刷新后重试");
             String productName = product.getName();
             // 检测产品是否为在线售卖状态
             if(Const.ProductStatus.ON_SALE.getCode() != product.getStatus()) return ServerResponse.createByError(productName+"不是在线售卖状态");
             // 检测产品库存
-            if(product.getStock() < cart.getQuantity()) {
+            if(product.getStock() < productInfo.getQuantity()) {
                 return ServerResponse.createByError(productName+"库存不足");
             }
             OrderItem orderItem = new OrderItem();
@@ -121,8 +121,8 @@ public class OrderService implements IOrderService {
             orderItem.setProductId(product.getId());
             orderItem.setProductName(product.getName());
             orderItem.setProductImage(product.getMainImage());
-            orderItem.setQuantity(cart.getQuantity());
-            orderItem.setTotalPrice(BigDecimalUtil.mul(cart.getQuantity(), product.getPrice().doubleValue()));
+            orderItem.setQuantity(productInfo.getQuantity());
+            orderItem.setTotalPrice(BigDecimalUtil.mul(productInfo.getQuantity(), product.getPrice().doubleValue()));
             orderItemList.add(orderItem);
         }
         return ServerResponse.createBySuccess(orderItemList);

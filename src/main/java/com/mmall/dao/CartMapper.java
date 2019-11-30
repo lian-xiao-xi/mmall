@@ -22,7 +22,7 @@ public interface CartMapper {
 
     Cart selectCartByUserIdAndProductId(@Param("userId") Integer userId, @Param("productId") Integer productId);
 
-    int deleteByUserIdAndProductIds(@Param("userId") Integer userId, @Param("productIdList") List<String> productIdList);
+    int deleteByUserIdAndProductIds(@Param("userId") Integer userId, @Param("productIdList") List<Integer> productIdList);
 
     List<Cart> selectByUserIdAndIds(@Param("userId") Integer userId, @Param("cartIds") List<Integer> cartIds);
 
