@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 
 @Controller
+@RequestMapping("/manager/product")
 public class ProductManagerController {
 
     @Autowired
