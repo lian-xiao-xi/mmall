@@ -1,12 +1,16 @@
 package com.mmall.service;
 
 import com.mmall.common.ServerResponse;
+import com.mmall.domain.SaltAndTokenVo;
 import com.mmall.pojo.User;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpSession;
 
 public interface IUserService {
-  ServerResponse<User> login(String username, String password);
+  User getByUsername(String username);
+  SaltAndTokenVo beforeLogin(@RequestParam String username, HttpSession session);
+  ServerResponse<User> validateCredentials(String username, String password, HttpSession session);
   ServerResponse<String> register(User user);
   ServerResponse<String> checkValid(String str, String type);
   ServerResponse selectQuestion(String username);

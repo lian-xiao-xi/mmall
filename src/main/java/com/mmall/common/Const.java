@@ -6,6 +6,8 @@ import java.util.Set;
 
 public class Const {
   public static final String CURRENT_USER = "CURRENT_USER";
+  public static final String CURRENT_USER_NAME = "CURRENT_USER_NAME";
+  public static final String CURRENT_USER_TOKEN = "CURRENT_USER_TOKEN";
   public static final String USERNAME = "USERNAME";
   public static final String EMAIL = "EMAIL";
   public interface Roles {

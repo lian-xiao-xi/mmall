@@ -5,10 +5,11 @@ import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.common.TokenCache;
 import com.mmall.dao.UserMapper;
+import com.mmall.domain.SaltAndTokenVo;
 import com.mmall.pojo.User;
 import com.mmall.service.IUserService;
 import com.mmall.util.MD5Util;
-import net.sf.jsqlparser.schema.Server;
+import com.mmall.util.SecurityUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,28 +19,48 @@ import java.util.UUID;
 
 @Service("iUserService")
 public class UserServiceImpl implements IUserService {
-  
+
   @Autowired
   private UserMapper userMapper;
-  
+
   @Override
-  public ServerResponse<User> login(String username, String password) {
-    int count = userMapper.checkUsername(username);
-    if(count == 0) {
-      return ServerResponse.createByError("用户名不存在");
-    }
-    
-    // 密码登录MD5加密
-    String md5password = MD5Util.MD5EncodeUtf8(password);
-    User user = userMapper.selectLogin(username, md5password);
-    if(user == null) {
-      return ServerResponse.createByError("密码错误");
-    }
-    // 不能将敏感信息传到前端
-    user.setPassword(StringUtils.EMPTY);
-    return ServerResponse.createBySuccess("登录成功", user);
+  public User getByUsername(String username) {
+    return userMapper.selectByUsername(username);
   }
-  
+
+  @Override
+  public SaltAndTokenVo beforeLogin(String username, HttpSession session) {
+    String token = UUID.randomUUID().toString().replace("-", "");
+    session.setAttribute(Const.CURRENT_USER_NAME, username);
+    session.setAttribute(Const.CURRENT_USER_TOKEN, token);
+    SaltAndTokenVo saltAndTokenVo = new SaltAndTokenVo();
+    saltAndTokenVo.setToken(token);
+    User user = userMapper.selectByUsername(username);
+    if(user == null) {
+      saltAndTokenVo.setSalt(UUID.randomUUID().toString().replace("-", ""));
+    } else {
+      saltAndTokenVo.setSalt(user.getSalt());
+    }
+    return saltAndTokenVo;
+//    return null;
+  }
+
+  @Override
+  public ServerResponse<User> validateCredentials(String username, String password, HttpSession session) {
+    if(StringUtils.isBlank(username) || StringUtils.isBlank(password))
+      return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+    String token = (String) session.getAttribute(Const.CURRENT_USER_TOKEN);
+    String userName = (String) session.getAttribute(Const.CURRENT_USER_NAME);
+    if(token == null || userName == null) return ServerResponse.createByError("登录失败，请先获取盐");
+    User user = userMapper.selectByUsername(username);
+    if(user == null) return ServerResponse.createByError("用户不存在");
+    String userCredentials = user.getPassword();
+    String sha256HMAC = SecurityUtil.sha256HMAC(userCredentials + userName, token);
+    boolean valid = StringUtils.equalsIgnoreCase(sha256HMAC.toLowerCase(), password) && StringUtils.isNotEmpty(userCredentials);
+    if(!valid) return ServerResponse.createByError("用户名或密码错误");
+    return ServerResponse.createBySuccess(user);
+  }
+
   @Override
   public ServerResponse<String> register(User user) {
     ServerResponse<String> checkUsername = this.checkValid(user.getUsername(), Const.USERNAME);
@@ -51,17 +72,17 @@ public class UserServiceImpl implements IUserService {
       return checkEmail;
     }
     user.setRole(Const.Roles.ROLE_CUSTOMER);
-  
+
     // MD5加密密码
     user.setPassword(MD5Util.MD5EncodeUtf8(user.getPassword()));
-  
+
     int insertCount = userMapper.insert(user);
     if(insertCount == 0) {
       return ServerResponse.createByError("注册失败");
     }
     return ServerResponse.createBySuccessMessage("注册成功");
   }
-  
+
   @Override
   public ServerResponse<String> checkValid(String str, String type) {
     if(StringUtils.isNotBlank(str)) {
@@ -83,20 +104,18 @@ public class UserServiceImpl implements IUserService {
     }
     return ServerResponse.createBySuccessMessage("校验成功");
   }
-  
+
   @Override
   public ServerResponse selectQuestion(String username) {
-    ServerResponse<String> checkUsername = this.checkValid(username, Const.USERNAME);
-    if(!checkUsername.isSuccess()) {
-      return ServerResponse.createByError("用户名不存在");
-    }
-    String question = userMapper.selectQuestionByUsername(username);
+    User user = userMapper.selectByUsername(username);
+    if(user == null) return ServerResponse.createByError("用户名不存在");
+    String question = user.getQuestion();
     if(StringUtils.isNotBlank(question)) {
       return ServerResponse.createBySuccess(question);
     }
     return ServerResponse.createByError("找回密码的问题为空");
   }
-  
+
   @Override
   public ServerResponse<String> checkAnswer(String username, String question, String answer) {
     int count = userMapper.checkAnswer(username, question, answer);
@@ -166,7 +185,7 @@ public class UserServiceImpl implements IUserService {
     if(updateCount <= 0) return ServerResponse.createByError("更新用户基本信息失败");
     return ServerResponse.createBySuccess("更新用户基本信息成功", updateUser);
   }
-  
+
   @Override
   public ServerResponse<User> getUserInfo(int userId) {
     User user = userMapper.selectByPrimaryKey(userId);

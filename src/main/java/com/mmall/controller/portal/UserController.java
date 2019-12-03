@@ -3,35 +3,46 @@ package com.mmall.controller.portal;
 import com.mmall.common.Const;
 import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
+import com.mmall.domain.SaltAndTokenVo;
+import com.mmall.domain.protal.UserLoginVo;
 import com.mmall.pojo.User;
 import com.mmall.service.IUserService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
+import java.util.UUID;
 
 @Controller
-@RequestMapping("/user/")
+@RequestMapping("/user")
 public class UserController {
-  
+
   @Autowired
   private IUserService iUserService;
-  
+
+  @RequestMapping(value = "before_login.do", method = RequestMethod.POST)
+  @ResponseBody
+  public ServerResponse<SaltAndTokenVo> beforeLogin(@RequestParam String username, HttpSession session) {
+    if(StringUtils.isBlank(username))
+      return ServerResponse.createByError(ResponseCode.ILLEGAL_ARGUMENT.getCode(), ResponseCode.ILLEGAL_ARGUMENT.getDesc());
+
+    SaltAndTokenVo saltAndTokenVo = iUserService.beforeLogin(username, session);
+    return ServerResponse.createBySuccess(saltAndTokenVo);
+  }
+
   // 登录
   @RequestMapping(value = "login.do", method = RequestMethod.POST)
   @ResponseBody
-  public ServerResponse<User> login(String username, String password, HttpSession session) {
-    ServerResponse<User> response = iUserService.login(username, password);
-    if(response.isSuccess()) {
-      session.setAttribute(Const.CURRENT_USER, response.getData());
-    }
-    return response;
+  public ServerResponse<User> login(@RequestBody UserLoginVo loginVo, HttpSession session) {
+    ServerResponse<User> validateCredentials = iUserService.validateCredentials(loginVo.getUsername(), loginVo.getPassword(), session);
+    if(!validateCredentials.isSuccess()) return validateCredentials;
+    User user = validateCredentials.getData();
+    session.setAttribute(Const.CURRENT_USER, user);
+    return ServerResponse.createBySuccess(user);
   }
-  
+
   // 退出登录
   @RequestMapping(value = "logout.do", method = RequestMethod.POST)
   @ResponseBody
@@ -39,21 +50,21 @@ public class UserController {
     session.removeAttribute(Const.CURRENT_USER);
     return ServerResponse.createBySuccess();
   }
-  
+
   // 注册
   @RequestMapping(value = "register.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> register(User user) {
     return iUserService.register(user);
   }
-  
+
   // 用户邮箱、手机号校验
   @RequestMapping(value = "check_valid.do", method = RequestMethod.POST)
   @ResponseBody
   public ServerResponse<String> checkValid(String str, String type) {
     return iUserService.checkValid(str, type);
   }
-  
+
   // 获取当前用户信息
   @RequestMapping(value = "get_user_info.do", method = RequestMethod.POST)
   @ResponseBody
@@ -64,14 +75,14 @@ public class UserController {
     }
     return ServerResponse.createBySuccess(user);
   }
-  
+
   // 获取密码提示问题
   @RequestMapping(value = "forget_get_question.do", method = RequestMethod.GET)
   @ResponseBody
   public ServerResponse forgetGetQuestion(String username) {
     return iUserService.selectQuestion(username);
   }
-  
+
   // 判读密码提示问题是否回答正确
   @RequestMapping(value = "question_is_true", method = RequestMethod.POST)
   @ResponseBody
@@ -112,7 +123,7 @@ public class UserController {
     }
     return userServerResponse;
   }
-  
+
   // 获取用户个人基本信息
   @RequestMapping(value = "get_user_info", method = RequestMethod.GET)
   @ResponseBody

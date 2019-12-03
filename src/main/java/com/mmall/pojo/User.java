@@ -23,7 +23,9 @@ public class User {
 
     private Date updateTime;
 
-    public User(Integer id, String username, String password, String email, String phone, String question, String answer, Integer role, Date createTime, Date updateTime) {
+    private String salt;
+
+    public User(Integer id, String username, String password, String email, String phone, String question, String answer, Integer role, Date createTime, Date updateTime, String salt) {
         this.id = id;
         this.username = username;
         this.password = password;
@@ -34,6 +36,7 @@ public class User {
         this.role = role;
         this.createTime = createTime;
         this.updateTime = updateTime;
+        this.salt = salt;
     }
 
     public User() {
@@ -118,5 +121,13 @@ public class User {
 
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt == null ? null : salt.trim();
     }
 }
