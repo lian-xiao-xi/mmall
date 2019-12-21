@@ -8,8 +8,7 @@ import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
@@ -17,18 +16,10 @@ import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@PropertySource(value = "classpath:datasource.properties", ignoreResourceNotFound = true)
 public class ApplicationDatasource {
-  @Bean
-  public static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
-    PropertySourcesPlaceholderConfigurer placeholderConfigurer = new PropertySourcesPlaceholderConfigurer();
-    placeholderConfigurer.setFileEncoding("UTF-8");
-//    placeholderConfigurer.setLocation(new ClassPathResource("datasource.properties"));
-//    placeholderConfigurer.setIgnoreResourceNotFound(true);
-    return placeholderConfigurer;
-  }
 
   @Bean
+  @Profile("dev")
   public BasicDataSource dataSource(
       @Value("${db.driverClassName}") String driverClassName,
       @Value("${db.url}") String url,
