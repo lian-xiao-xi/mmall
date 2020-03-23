@@ -12,7 +12,7 @@ import java.util.Map;
 
 public interface IOrderService {
     ServerResponse createOrder(CreateOrderVo vo, int userId);
-    ServerResponse getOrderCartProduct(List<Integer> cartIds, int userId);
+    ServerResponse getOrderCartProduct(int[] cartIds, int userId);
     ServerResponse<PageInfo<OrderVo>> userOrderList(PageVo page, int userId);
     ServerResponse<OrderVo> userOrderDetail(Long orderNo, Integer userId);
     ServerResponse<String> cancelOrder(Long orderNo, Integer userId);

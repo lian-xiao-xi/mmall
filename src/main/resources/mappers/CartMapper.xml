@@ -147,7 +147,7 @@
     <include refid="Base_Column_List"/>
     from mmall_cart
     where user_id = #{userId}
-    <if test="cartIds != null and cartIds.size() > 0">
+    <if test="cartIds.length > 0">
       and id in
       <foreach collection="cartIds" item="item" index="index" open="(" close=")" separator=",">
         #{item}

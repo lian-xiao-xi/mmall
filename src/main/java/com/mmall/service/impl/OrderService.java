@@ -107,11 +107,11 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public ServerResponse getOrderCartProduct(List<Integer> cartIds, int userId) {
+    public ServerResponse getOrderCartProduct(int[] cartIds, int userId) {
         // 产生订单的购物车列表
         List<Cart> cartList = cartMapper.selectByUserIdAndIds(userId, cartIds);
         if(cartList.isEmpty()) return ServerResponse.createByError("没有选择任何购物车商品");
-        if(cartList.size() != cartIds.size()) return ServerResponse.createByError("选择的一些购物车不存在了");
+        if(cartList.size() != cartIds.length) return ServerResponse.createByError("选择的一些购物车不存在了");
         List<OrderProductInfoVo> productInfoVos = cartList.stream().map(cart -> {
             OrderProductInfoVo productInfoVo = new OrderProductInfoVo();
             productInfoVo.setProductId(cart.getProductId());

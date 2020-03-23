@@ -38,7 +38,7 @@ public class OrderController {
 
     // 提交订单前（确认订单时），获取订单中所含的商品清单列表详情
     @RequestMapping(value = "get_order_cart_product.do", method = RequestMethod.GET)
-    public ServerResponse getOrderCartProduct(@RequestParam List<Integer> cartIds, HttpSession session){
+    public ServerResponse getOrderCartProduct(@RequestParam int[] cartIds, HttpSession session){
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if(user ==null) return ServerResponse.createByError(ResponseCode.NEED_LOGIN.getCode(),ResponseCode.NEED_LOGIN.getDesc());
         return iOrderService.getOrderCartProduct(cartIds, user.getId());
